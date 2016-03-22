@@ -35,3 +35,6 @@ Project Target=g2o_ba_example,ba_example
 Use External Terminal=false
 Working Directory=file:///home/xiang/Documents/code/g2o_ba_example/build/
 isExecutable=false
+
+[Project]
+VersionControlSupport=kdevgit

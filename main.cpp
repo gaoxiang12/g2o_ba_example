@@ -106,6 +106,7 @@ int main( int argc, char** argv )
     
     // 准备边
     // 第一帧
+    vector<g2o::EdgeProjectXYZ2UV*> edges;
     for ( size_t i=0; i<pts1.size(); i++ )
     {
         g2o::EdgeProjectXYZ2UV*  edge = new g2o::EdgeProjectXYZ2UV();
@@ -117,6 +118,7 @@ int main( int argc, char** argv )
         // 核函数
         edge->setRobustKernel( new g2o::RobustKernelHuber() );
         optimizer.addEdge( edge );
+        edges.push_back(edge);
     }
     // 第二帧
     for ( size_t i=0; i<pts2.size(); i++ )
@@ -130,6 +132,7 @@ int main( int argc, char** argv )
         // 核函数
         edge->setRobustKernel( new g2o::RobustKernelHuber() );
         optimizer.addEdge( edge );
+        edges.push_back(edge);
     }
     
     cout<<"开始优化"<<endl;
@@ -149,9 +152,26 @@ int main( int argc, char** argv )
         g2o::VertexSBAPointXYZ* v = dynamic_cast<g2o::VertexSBAPointXYZ*> (optimizer.vertex(i+2));
         cout<<"vertex id "<<i+2<<", pos = ";
         Eigen::Vector3d pos = v->estimate();
-        cout<<pos.matrix()<<endl;
+        cout<<pos(0)<<","<<pos(1)<<","<<pos(2)<<endl;
     }
     
+    // 估计inlier的个数
+    int inliers = 0;
+    for ( auto e:edges )
+    {
+        e->computeError();
+        // chi2 就是 error*\Omega*error, 如果这个数很大，说明此边的值与其他边很不相符
+        if ( e->chi2() > 1 )
+        {
+            cout<<"error = "<<e->chi2()<<endl;
+        }
+        else 
+        {
+            inliers++;
+        }
+    }
+    
+    cout<<"inliers in total points: "<<inliers<<"/"<<pts1.size()+pts2.size()<<endl;
     optimizer.save("ba.g2o");
     return 0;
 }
