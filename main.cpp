@@ -27,6 +27,14 @@
 
 using namespace std;
 
+#if CV_VERSION_EPOCH == 2
+#define OPENCV2
+#elif CV_VERSION_MAJOR == 3
+#define  OPENCV3
+#else
+#error Not support this OpenCV version
+#endif
+
 // 寻找两个图像中的对应点，像素坐标系
 // 输入：img1, img2 两张图像
 // 输出：points1, points2, 两组对应的2D点
@@ -145,7 +153,7 @@ int main( int argc, char** argv )
     g2o::VertexSE3Expmap* v = dynamic_cast<g2o::VertexSE3Expmap*>( optimizer.vertex(1) );
     Eigen::Isometry3d pose = v->estimate();
     cout<<"Pose="<<endl<<pose.matrix()<<endl;
-    
+
     // 以及所有特征点的位置
     for ( size_t i=0; i<pts1.size(); i++ )
     {
@@ -179,11 +187,31 @@ int main( int argc, char** argv )
 
 int     findCorrespondingPoints( const cv::Mat& img1, const cv::Mat& img2, vector<cv::Point2f>& points1, vector<cv::Point2f>& points2 )
 {
+#ifdef OPENCV2
+    /*
+     * OpenCV 2
+     */
+    std::cout << "opencv2 used!" << std::endl;
     cv::ORB orb;
     vector<cv::KeyPoint> kp1, kp2;
     cv::Mat desp1, desp2;
     orb( img1, cv::Mat(), kp1, desp1 );
     orb( img2, cv::Mat(), kp2, desp2 );
+#elif defined(OPENCV3)
+    /*
+     * OpenCV 3
+     */
+    std::cout << "opencv3 used!" << std::endl;
+    std::vector<cv::KeyPoint> kp1, kp2;
+    cv::Mat desp1, desp2;
+    cv::Ptr<cv::FeatureDetector> detector = cv::ORB::create();
+    cv::Ptr<cv::DescriptorExtractor> descriptor = cv::ORB::create();
+    detector->detect(img1, kp1);
+    detector->detect(img2, kp2);
+    descriptor->compute(img1, kp1, desp1);
+    descriptor->compute(img2, kp2, desp2);
+#endif
+
     cout<<"分别找到了"<<kp1.size()<<"和"<<kp2.size()<<"个特征点"<<endl;
     
     cv::Ptr<cv::DescriptorMatcher>  matcher = cv::DescriptorMatcher::create( "BruteForce-Hamming");
